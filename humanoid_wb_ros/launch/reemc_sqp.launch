@@ -1,0 +1,89 @@
+<?xml version="1.0" ?>
+
+<launch>
+    <!-- visualization config -->
+    <arg name="rviz"               default="true" />
+    <arg name="global_frame"        default="odometry/world" />
+    <arg name="description_name"   default="humanoid_wb_description"/>
+    <arg name="multiplot"          default="false"/>
+
+    <!-- further flags -->
+    <arg name="gdb"                default="false"/>
+    <arg name="xbot_plugin"        default="false"/>
+    <arg name="base_estimation"    default="true"/>		
+
+    <!-- The task file for the mpc. -->
+    <arg name="taskFile"          default="$(find humanoid_wb)/config/mpc/reemc_task_new.info"/>
+    <!-- The reference related config file of the robot -->
+    <arg name="referenceFile"     default="$(find humanoid_wb)/config/command/reemc_reference.info"/>
+    <!-- The URDF model of the robot -->
+    <arg name="urdfFile"          default="$(find humanoid_assets)/resources/reemc/urdf/reemc_full_simplified_hands_hcrmi_cc.urdf"/>
+    
+    <!-- The file defining gait definition -->
+    <arg name="gaitCommandFile"   default="$(find humanoid_wb)/config/command/gait.info"/>
+    
+    <!-- Load impedance gains for joints to be used for controlling the robot -->
+    <rosparam param="mrt_joint_impedance_gains" command="load" file="$(find humanoid_wb)/config/control/impedance_gains_control.yaml"/>
+
+    <!-- rviz -->
+    <group if="$(arg rviz)">
+      <param name="$(arg description_name)" textfile="$(arg urdfFile)"/>
+      <arg name="rvizconfig" default="$(find humanoid_wb_ros)/rviz/reemc.rviz" />
+      <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg rvizconfig)" output="screen" />
+    </group>
+
+    <!-- visualization nodes receive this frame -->
+    <param name="global_frame"   value="$(arg global_frame)"/>
+
+    <!-- multiplot -->
+    <group if="$(arg multiplot)">
+      <include file="$(find humanoid_wb_ros)/launch/multiplot.launch"/>
+    </group>
+
+    <!-- make the files into global parameters -->
+    <param name="taskFile"          value="$(arg taskFile)" />
+    <param name="referenceFile"     value="$(arg referenceFile)" />
+    <param name="urdfFile"          value="$(arg urdfFile)" />
+    <param name="gaitCommandFile"   value="$(arg gaitCommandFile)"/>
+
+    <!-- base estimation -->
+    <!-- <include file="$(find base_estimation)/launch/centauro_base_estimation.launch" if="$(arg base_estimation)">
+    	<arg name="launch-prefix" value="gnome-terminal "/>
+    </include> -->
+
+    <!-- run the dummy node if you don't want to run it as a xbot plugin -->
+    <group unless="$(arg xbot_plugin)">
+        <group if="$(arg gdb)">
+            <node pkg="humanoid_wb_ros" type="humanoid_wb_dummy" name="humanoid_wb_dummy"
+                  output="screen" launch-prefix="gnome-terminal -- gdb -e run --args"/>
+            
+            <node pkg="humanoid_wb_ros" type="humanoid_wb_sqp_mpc" name="humanoid_wb_sqp_mpc"
+                   output="screen" launch-prefix="gnome-terminal -- gdb -e run --args"/>
+        </group>
+        <group unless="$(arg gdb)">
+            <node pkg="humanoid_wb_ros" type="humanoid_wb_dummy" name="humanoid_wb_dummy"
+                  output="screen" launch-prefix=""/>
+            <node pkg="humanoid_wb_ros" type="humanoid_wb_sqp_mpc" name="humanoid_wb_sqp_mpc"
+                   output="screen" launch-prefix=""/>
+        </group>
+    </group>
+
+    <node pkg="humanoid_wb_ros" type="humanoid_wb_target" name="humanoid_wb_target"
+        output="screen" launch-prefix="gnome-terminal --"/>
+
+    <node pkg="humanoid_wb_ros" type="humanoid_wb_gait_command" name="humanoid_wb_gait_command"
+          output="screen" launch-prefix="gnome-terminal --"/>
+          
+    <!-- add node for arm ee targets -->
+    
+    <node if="$(arg rviz)" pkg="humanoid_wb_ros" type="humanoid_wb_target" name="humanoid_wb_hand_target_right" output="screen" launch-prefix="">
+	<param name="frame_name" value="hand_right_palm_link"/>
+    </node>
+    <node if="$(arg rviz)" pkg="humanoid_wb_ros" type="humanoid_wb_target" name="humanoid_wb_hand_target_left" output="screen" launch-prefix="">
+	<param name="frame_name" value="hand_left_palm_link"/>
+    </node>
+
+    <!-- publish world identical to odom since it is needed from interactive arm target -->
+    <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="world_broadcast" args="0.0 0.0 0.0 0 0 0 1 world odom" /> -->
+</launch>
+

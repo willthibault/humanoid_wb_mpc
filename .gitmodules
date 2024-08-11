@@ -1,0 +1,4 @@
+
+[submodule "base_estimation"]
+	path = base_estimation
+	url = https://github.com/ADVRHumanoids/base_estimation.git

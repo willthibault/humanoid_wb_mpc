@@ -1,0 +1,624 @@
+centroidalModelType             1      // 0: FullCentroidalDynamics, 1: Single Rigid Body Dynamics
+
+humanoid_wb_interface
+{
+  verbose                               false  // show the loaded parameters
+  useAnalyticalGradientsDynamics        false
+  useAnalyticalGradientsConstraints     false
+}
+
+model_settings
+{
+  positionErrorGain             0.0 ;5.0
+  orientationErrorGain          0.0 ;1.0
+  phaseTransitionStanceTime     0.4 ;1.0
+
+  verboseCppAd                  true
+  recompileLibrariesCppAd       true
+  modelFolderCppAd              /tmp/ocs2
+}
+
+; #######################################
+; ##### EE Swing Trajectory Planner #####
+; #######################################
+swing_trajectory_config
+{
+  addPlanarConstraints          false   ; true for exact steps
+
+  liftOffVelocity               0.2
+  touchDownVelocity             -0.4
+  swingHeight                   0.1
+
+  touchdownAfterHorizon         0.2
+  swingTimeScale                0.15
+
+  liftOffLongVelocity           0.2
+  touchDownLongVelocity         -0.4
+  longStepLength                0.2
+
+  liftOffLateralVelocity           0.2
+  touchDownLateralVelocity         -0.4
+  lateralStepLength                0.2
+}
+
+arm_swing_trajectory_config
+{
+  addConstraints                true
+  positionPlanner               true
+  orientationPlanner            true
+  positionIndicesRightArm
+  {
+      [0]   0
+      [1]   1
+      [2]   2
+  }
+  positionIndicesLeftArm
+  {
+      [0]   0
+      [1]   1
+      [2]   2
+  }
+  orientationIndicesRightArm
+  {
+      [0]   0
+      [1]   1
+      [2]   2
+  }
+  orientationIndicesLeftArm
+  {
+      [0]   0
+      [1]   1
+      [2]   2
+  }
+  meanEeVelocity                0.1
+  liftOffVelocity               0.0
+  touchDownVelocity             -0.0
+  touchdownAfterHorizon         0.2
+  swingTimeScale                0.15
+  liftOffLongVelocity           0.0
+  touchDownLongVelocity         0.0
+  liftOffLateralVelocity           0.0
+  touchDownLateralVelocity         0.0
+}
+
+; #######################################
+; ######### arm EE soft constraint ######
+; #######################################
+armEeSoftConstraints
+{
+    activate            true
+
+    hand_right_palm_linkEndEffector
+    {
+      frameName         hand_right_palm_link
+      bufferIndex       0
+      ; end effector quadratic penalty scaling
+      muPosition        0.0
+      muOrientation     0.0
+    }
+
+    hand_left_palm_linkEndEffector
+    {
+      frameName         hand_left_palm_link
+      bufferIndex       1
+      ; end effector quadratic penalty scaling
+      muPosition        0.0
+      muOrientation     0.0
+    }
+
+}
+
+; multiple_shooting settings
+multiple_shooting
+{
+  nThreads                              3
+  dt                                    0.015
+  sqpIteration                          1
+  deltaTol                              1e-4
+  g_max                                 1e-2
+  g_min                                 1e-6
+  inequalityConstraintMu                0.1
+  inequalityConstraintDelta             5.0
+  projectStateInputEqualityConstraints  true
+  printSolverStatistics                 true
+  printSolverStatus                     true
+  printLinesearch                       true
+  useFeedbackPolicy                     true
+  integratorType                        RK2
+  threadPriority                        50
+}
+
+
+; Multiple_Shooting SQP settings
+sqp
+{
+  nThreads                              3
+  dt                                    0.015
+  sqpIteration                          1
+  deltaTol                              1e-4
+  g_max                                 1e-2
+  g_min                                 1e-6
+  inequalityConstraintMu                0.1
+  inequalityConstraintDelta             5.0
+  projectStateInputEqualityConstraints  true
+  printSolverStatistics                 true
+  printSolverStatus                     false
+  printLinesearch                       false
+  useFeedbackPolicy                     true
+  integratorType                        RK2
+  threadPriority                        50
+}
+
+
+; DDP settings
+ddp
+{
+  algorithm                       SLQ
+
+  nThreads                        3
+  threadPriority                  50
+
+  maxNumIterations                1         ; Maximum number of iteration of DDP
+  minRelCost                      1e-1      ; Termination condition based on the minimum relative changes of the cost.
+  constraintTolerance             5e-3      ; Tolerance of constraint's ISE (Integral of Square Error).
+
+  displayInfo                     false
+  displayShortSummary             false
+  checkNumericalStability         false
+  debugPrintRollout               false     ; Print rollout trajectory for debugging
+  debugCaching                    false     ; Debugs the cached nominal trajectories
+
+  AbsTolODE                       1e-5      ; Absolute tolerance error for ode solvers.
+  RelTolODE                       1e-3      ; Relative tolerance error for ode solvers.
+  maxNumStepsPerSecond            10000     ; Maximum number of integration points per a second for ode solvers
+  timeStep                        0.015     ; Integration time step for Riccati equation which is used for fixed timestep integration scheme
+  backwardPassIntegratorType      ODE45     ; SLQ uses backwardpass for solving Riccati equation and ILQR uses it for discretizing LQ approximation.
+
+  constraintPenaltyInitialValue   20.0      ; Initial coefficient of the quadratic penalty function in augmented Lagrangian method. It should be > 1.0
+  constraintPenaltyIncreaseRate   2.0       ; The rate that the coefficient of the quadratic penalty function in augmented Lagrangian method grows. It should be > 1.0
+  inequalityConstraintMu          0.1       ; Inequality penalty relaxed barrier parameters (not used?)
+  inequalityConstraintDelta       5.0       ; -----
+
+  preComputeRiccatiTerms          true      ; Terms of the Riccati equation will be precomputed before interpolation in the flow-map
+
+  useFeedbackPolicy               false     ; Use either the optimized control policy (true) or the optimized state-input trajectory (false)
+
+  strategy                        LINE_SEARCH   ; Determines the strategy for solving the subproblem. There are two choices line-search strategy and levenberg_marquardt strategy
+  lineSearch
+  {
+    minStepLength                 1e-2      ; Minimum step length of line-search strategy.
+    maxStepLength                 1.0
+    hessianCorrectionStrategy     DIAGONAL_SHIFT
+    hessianCorrectionMultiple     1e-5      ; Used for correcting the Hessian for numerical stability of the Riccati backward pass
+  }
+}
+
+; Rollout settings
+rollout
+{
+  AbsTolODE                       1e-5
+  RelTolODE                       1e-3
+  timeStep                        0.015
+  integratorType                  ODE45
+  maxNumStepsPerSecond            10000
+  checkNumericalStability         false
+}
+
+mpc
+{
+  timeHorizon                     1.0       ; [s]
+  solutionTimeWindow              -1        ; The time window (sec) for retrieving the optimized outputs (controller and state-input trajectories). Any negative number implies the whole time horizon.
+  coldStart                       false     ; Initialize the SLQ with the controller from previous call (warm start) or the given operating trajectories (cold start).
+
+  debugPrint                      false
+
+  mpcDesiredFrequency             -1; 20 ; [Hz]
+  mrtDesiredFrequency             500 ; [Hz]
+}
+
+xbotcore
+{
+  xbotCoreRunning                     false                ; true if xbotcore is running so that initialState is received from there
+  xbotCoreFeedback                    true                ; true if it is to receive feedback from xbotcore
+
+  ; topic prefix to receive base pose and twist ;
+  baseLinkTopicPrefix             /humanoid_wb_base_estimation/base_link     ;/xbotcore/link_state/pelvis
+
+  ; flag to clamp the commands within the urdf limits at the xbotcore control level
+  clampTorqueCmd                      true
+  clampPositionCmd                    true
+  clampVelocityCmd                    true
+}
+
+forceTorqueSensingInMpc         ; pass sensor measurements (estimated wrench or joint states to mpc through synchronized modules)
+{
+    estimatedWrenches               false
+    jointStates                     false
+}
+publishJointImpedancePolicy         false
+
+initialState
+{
+   ;; Normalized Centroidal Momentum: [linear, angular] ;;
+   (0,0)  0.0     ; vcom_x
+   (1,0)  0.0     ; vcom_y
+   (2,0)  0.0     ; vcom_z
+   (3,0)  0.0     ; L_x / robotMass
+   (4,0)  0.0     ; L_y / robotMass
+   (5,0)  0.0     ; L_z / robotMass
+
+   ;; Base Pose: [position, orientation] ;;
+   (6,0)  0.0     ; p_base_x
+   (7,0)  0.0     ; p_base_y
+   (8,0)  0.82   ; p_base_z
+   (9,0)  0.0     ; theta_base_z
+   (10,0) 0.0     ; theta_base_y
+   (11,0) 0.0     ; theta_base_x
+
+   ;; Leg Joint Positions: [leg_right, leg_left] ;;
+   (12,0)   0.0    ; leg_right_1_joint
+   (13,0)   0.0    ; leg_right_2_joint
+   (14,0)  -0.31   ; leg_right_3_joint
+   (15,0)   0.64   ; leg_right_4_joint
+   (16,0)  -0.32   ; leg_right_5_joint
+   (17,0)   0.0    ; leg_right_6_joint
+
+   (18,0)   0.0    ; leg_left_1_joint
+   (19,0)   0.0    ; leg_left_2_joint
+   (20,0)  -0.31   ; leg_left_3_joint
+   (21,0)   0.64   ; leg_left_4_joint
+   (22,0)  -0.32   ; leg_left_5_joint
+   (23,0)   0.0    ; leg_left_6_joint
+
+;; Torso Joint Positions: [torso] ;;
+   (24,0)  0.0    ; torso_1_joint
+   (25,0)  0.0    ; torso_2_joint
+
+;; Head Joint Positions: [head] ;;
+   (26,0)  0.0    ; head_1_joint
+   (27,0)  0.0    ; head_2_joint
+
+;; Arm Joint Positions: [arm_right, arm_left] ;;
+
+   (28,0) -0.44   ; arm_right_1_joint
+   (29,0)  0.26   ; arm_right_2_joint
+   (30,0)  0.0    ; arm_right_3_joint
+   (31,0)  0.88   ; arm_right_4_joint
+   (32,0)  0.0    ; arm_right_5_joint
+   (33,0)  0.0    ; arm_right_6_joint
+   (34,0)  0.0    ; arm_right_7_joint
+
+   (35,0) -0.44   ; arm_left_1_joint
+   (36,0)  0.26   ; arm_left_2_joint
+   (37,0)  0.0    ; arm_left_3_joint
+   (38,0)  0.88   ; arm_left_4_joint
+   (39,0)  0.0    ; arm_left_5_joint
+   (40,0)  0.0    ; arm_left_6_joint
+   (41,0)  0.0    ; arm_left_7_joint
+}
+
+; standard state weight matrix
+Q
+{
+  scaling 1e+1
+
+  ;; Normalized Centroidal Momentum: [linear, angular] ;;
+  (0,0)   1.50     ; vcom_x
+  (1,1)   1.50     ; vcom_y
+  (2,2)   3.00     ; vcom_z
+  (3,3)   0.50     ; L_x / robotMass
+  (4,4)   1.00     ; L_y / robotMass
+  (5,5)   1.00     ; L_z / robotMass
+
+  ;; Base Pose: [position, orientation] ;;
+  (6,6)   5.0e+1    ; p_base_x
+  (7,7)   5.0e+1    ; p_base_y
+  (8,8)   5.0e+1    ; p_base_z
+  (9,9)   1.0e+1    ; theta_base_z
+  (10,10) 2.0e+1    ; theta_base_y
+  (11,11) 2.0e+1    ; theta_base_x
+
+  ;; Leg Joint Positions: [leg_right, leg_left] ;;
+  (12,12)  2.0e-0   ; leg_right_1_joint
+  (13,13)  2.0e-0   ; leg_right_2_joint
+  (14,14)  2.0e-0   ; leg_right_3_joint
+  (15,15)  2.0e-0   ; leg_right_4_joint
+  (16,16)  2.0e-0   ; leg_right_5_joint
+  (17,17)  2.0e-0   ; leg_right_6_joint
+  (18,18)  2.0e-0   ; leg_left_1_joint
+  (19,19)  2.0e-0   ; leg_left_2_joint
+  (20,20)  2.0e-0   ; leg_left_3_joint
+  (21,21)  2.0e-0   ; leg_left_4_joint
+  (22,22)  2.0e-0   ; leg_left_5_joint
+  (23,23)  2.0e-0   ; leg_left_6_joint
+
+  ;; Torso Joint Positions: [torso] ;;
+  (24,24)  2.0e-0     ; torso_1_joint
+  (25,25)  2.0e-0     ; torso_2_joint
+
+  ;; head Joint Positions: [head] ;;
+  (26,26)  2.0e-0     ; head_1_joint
+  (27,27)  2.0e-0     ; head_2_joint
+
+  ;; Arm Joint Positions: [arm_right, arm_left] ;;
+  (28,28)  3.0e-0    ; arm_right_1_joint
+  (29,29)  3.0e-0    ; arm_right_2_joint
+  (30,30)  3.0e-0    ; arm_right_3_joint
+  (31,31)  3.0e-0    ; arm_right_4_joint
+  (32,32)  3.0e-0    ; arm_right_5_joint
+  (33,33)  3.0e-0    ; arm_right_6_joint
+  (34,34)  3.0e-0    ; arm_right_7_joint
+
+  (35,35)  3.0e-0    ; arm_left_1_joint
+  (36,36)  3.0e-0    ; arm_left_2_joint
+  (37,37)  3.0e-0    ; arm_left_3_joint
+  (38,38)  3.0e-0    ; arm_left_4_joint
+  (39,39)  3.0e-0    ; arm_left_5_joint
+  (40,40)  3.0e-0    ; arm_left_6_joint
+  (41,41)  3.0e-0    ; arm_left_7_joint
+}
+
+; custom control weight matrix
+R_j
+{
+  scaling 1e0
+
+  ;; Feet Contact Forces: [foot_right, foot_left] ;;
+  (0,0)   0.001     ;e2       ; right_foot_force     ; centroidal in rviz only may need higher costs
+  (1,1)   0.001     ;e2       ; right_foot_force
+  (2,2)   0.001     ;e1       ; right_foot_force
+  (3,3)   0.001     ;e2       ; left_foot_force
+  (4,4)   0.001     ;e2       ; left_foot_force
+  (5,5)   0.001     ;e1       ; left_foot_force
+
+  (6,6) 0.0001       ; right_hand_force
+  (7,7) 0.0001       ; right_hand_force
+  (8,8) 0.0001       ; right_hand_force
+
+  (9,9) 0.0001       ; left_hand_force
+  (10,10) 0.0001       ; left_hand_force
+  (11,11) 0.0001       ; left_hand_force
+
+  ;; joint velocities ;;
+  (12,12) 1.0    ; leg_right_1_joint
+  (13,13) 1.0    ; leg_right_2_joint
+  (14,14) 1.0    ; leg_right_3_joint
+  (15,15) 1.0    ; leg_right_4_joint
+  (16,16) 1.0    ; leg_right_5_joint
+  (17,17) 1.0    ; leg_right_6_joint
+  (18,18) 1.0    ; leg_left_1_joint
+  (19,19) 1.0    ; leg_left_2_joint
+  (20,20) 1.0    ; leg_left_3_joint
+  (21,21) 1.0    ; leg_left_4_joint
+  (22,22) 1.0    ; leg_left_5_joint
+  (23,23) 1.0    ; leg_left_6_joint
+
+  ;; Torso Joint vel: [torso] ;;
+  (24,24)  1.0     ; torso_1_joint
+  (25,25)  1.0     ; torso_2_joint
+
+  ;; Head Joint vel: [head] ;;
+  (26,26)  1.0     ; head_1_joint
+  (27,27)  1.0     ; head_2_joint
+
+  ;; Arm Joint vel: [arm_right, arm_left] ;;
+  (28,28)  1.0    ; arm_right_1_joint
+  (29,29)  1.0    ; arm_right_2_joint
+  (30,30)  1.0    ; arm_right_3_joint
+  (31,31)  1.0    ; arm_right_4_joint
+  (32,32)  1.0    ; arm_right_5_joint
+  (33,33)  1.0    ; arm_right_6_joint
+  (34,34)  1.0    ; arm_right_7_joint
+  (35,35)  1.0    ; arm_left_1_joint
+  (36,36)  1.0    ; arm_left_2_joint
+  (37,37)  1.0    ; arm_left_3_joint
+  (38,38)  1.0    ; arm_left_4_joint
+  (39,39)  1.0    ; arm_left_5_joint
+  (40,40)  1.0    ; arm_left_6_joint
+  (41,41)  1.0    ; arm_left_7_joint
+}
+
+
+; weight on feet ee velocity
+R_taskspace
+{
+  scaling 1e-3
+
+  ;; Feet Contact Forces: [foot_right, foot_left] ;;
+  (0,0)     1.0       ; right_foot_velocity
+  (1,1)     1.0       ; right_foot_velocity
+  (2,2)     1.0       ; right_foot_velocity
+  (3,3)     1.0       ; left_foot_velocity
+  (4,4)     1.0       ; left_foot_velocity
+  (5,5)     1.0       ; left_foot_velocity
+}
+
+armForceReferences              ; force references for arm EEs for quadratic state-input cost
+{
+    rightArmForceReference
+    {
+        (0,0)  0.0      ; Fx
+        (1,0)  0.0      ; Fy
+        (2,0)  0.0      ; Fz
+    }
+    leftArmForceReference
+    {
+        (0,0)  0.0
+        (1,0)  0.0
+        (2,0)  0.0
+    }
+}
+
+; ###############################################
+; #### Friction Cone & Stability Constraint #####
+; ###############################################
+frictionConeConstraint
+{
+  frictionCoefficient    0.7
+  regularization         500.0
+  surfaceNormals
+  {
+    (0,0)     0.0      ;; foot_right_x
+    (1,0)     0.0      ;; foot_right_y
+    (2,0)     1.0      ;; foot_right_z
+    (0,1)     0.0      ;; foot_left
+    (1,1)     0.0
+    (2,1)     1.0
+    (0,2)     0.0      ;; arm_right
+    (1,2)     0.0
+    (2,2)     0.0
+    (0,3)     0.0      ;; arm_left
+    (1,3)     0.0
+    (2,3)     0.0
+  }
+
+  augmented_lagrangian
+  {
+    scale                       1e-0               ; a penalty term \pho that acts as a scaling factor for the total penalty.
+    stepSize                    0.01               ; step-size \alpha for updating Lagrange multiplier through a gradient ascent step
+  }
+}
+
+stabilityConstraint
+{
+  activate                      true
+  config
+  {
+    scale                       1e-0               ; a penalty term \pho that acts as a scaling factor for the total penalty.
+    stepSize                    0.01               ; step-size \alpha for updating Lagrange multiplier through a gradient ascent step
+  }
+}
+minimumNormalForce          80
+maximumNormalForce          1000
+
+; #############################################
+; ###### Joint position & velocity limirs #####
+; #############################################
+JointVelocityLimits
+{
+  activateVelocityLimits      true
+  config
+  {
+    scale                       1e3               ; a penalty term \pho that acts as a scaling factor for the total penalty.
+    stepSize                    0.01               ; step-size \alpha for updating Lagrange multiplier through a gradient ascent step
+  }
+}
+
+JointPositionLimits
+{
+  activatePositionLimits      true
+  config
+  {
+    scale                       1e1               ; a penalty term \pho that acts as a scaling factor for the total penalty.
+    stepSize                    0.01               ; step-size \alpha for updating Lagrange multiplier through a gradient ascent step
+  }
+}
+
+
+; target frames general parameters
+targetFramesNames
+{
+  [0]       hand_right_palm_link	; frames with targets (other than arm EEs which are already considered)
+  [1]       hand_left_palm_link
+}
+
+; #######################################
+; ########### Self Collision ############
+; #######################################
+selfCollision
+{
+  ; activate self-collision constraint
+  activate          true
+
+  ; Self Collision raw object pairs
+  collisionObjectPairs
+  {
+    ;[0] "1, 4"
+    ;[1] "1, 6"
+    ;[2] "1, 9"
+  }
+
+  ; Self Collision pairs
+  collisionLinkPairs
+  {
+    [0] "hand_right_palm_link, base_link"             ;right_hand
+    [1] "hand_right_palm_link, torso_2_link"
+    [2] "hand_right_palm_link, leg_right_3_link"
+    [3] "hand_right_palm_link, arm_left_5_link"
+    [4] "hand_right_palm_link, leg_left_3_link"
+    [5] "hand_right_palm_link, hand_left_palm_link"   ;hands
+    [6] "hand_left_palm_link, base_link"              ;left_hand
+    [7] "hand_left_palm_link, torso_2_link"
+    [8] "hand_left_palm_link, leg_left_3_link"
+    [9] "hand_left_palm_link, arm_right_5_link"
+    [10] "hand_left_palm_link, leg_right_3_link" 
+    [11] "arm_right_2_link, torso_2_link"               ;right_arm
+    [12] "arm_right_3_link, torso_2_link"
+    [13] "arm_right_4_link, torso_2_link"
+    [14] "arm_right_4_link, base_link"
+    [15] "arm_right_5_link, torso_2_link"
+    [16] "arm_right_5_link, leg_right_3_link" 
+    [17] "arm_left_2_link, torso_2_link"               ;left_arm
+    [18] "arm_left_3_link, torso_2_link"
+    [19] "arm_left_4_link, torso_2_link"
+    [20] "arm_left_4_link, base_link"
+    [21] "arm_left_5_link, torso_2_link"
+    [22] "arm_left_5_link, leg_left_3_link"
+    [23] "leg_right_3_link, leg_left_3_link"         ;right_leg
+    [24] "leg_right_4_link, leg_left_4_link"
+    [25] "leg_right_4_link, leg_left_6_link"
+    [26] "leg_right_6_link, leg_left_6_link"
+    [27] "leg_left_4_link, leg_right_6_link"         ;left_leg
+    
+  }
+
+  ; minimum distance allowed between the pairs
+  minimumDistance  0.01
+
+  ; relaxed log barrier mu
+  mu     2e-3
+
+  ; relaxed log barrier delta
+  delta  1e-3
+}
+
+; #######################################
+; ######### force control ###############
+; #######################################
+force_control
+{
+    activate            false
+    admittance
+    {
+        activate        false
+        pGains
+        {
+          (0,0)     1.0e-2       ; f_x
+          (1,0)     1.0e-2       ; f_y
+          (2,0)     1.0e-2       ; f_z
+          (3,0)     1.0e-2       ; tau_x
+          (4,0)     1.0e-2       ; tau_y
+          (5,0)     1.0e-2       ; tau_z
+        }
+
+        iGains
+        {
+          (0,0)     1.0e-2       ; f_x
+          (1,0)     1.0e-2       ; f_y
+          (2,0)     1.0e-2       ; f_z
+          (3,0)     1.0e-2       ; tau_x
+          (4,0)     1.0e-2       ; tau_y
+          (5,0)     1.0e-2       ; tau_z
+        }
+
+        wrenchIntegralMax
+        {
+          (0,0)     10.0       ; f_x
+          (1,0)     10.0       ; f_y
+          (2,0)     10.0       ; f_z
+          (3,0)     10.0       ; tau_x
+          (4,0)     10.0       ; tau_y
+          (5,0)     10.0       ; tau_z
+        }
+    }
+}

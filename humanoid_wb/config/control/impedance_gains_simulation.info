@@ -1,0 +1,74 @@
+simulation
+{
+	centroidal_model_rbd_conversions
+	{
+		pGains
+		{
+			[0] 2000  ; leg_right_1_joint
+			[1] 2000  ; leg_right_2_joint
+			[2] 2000  ; leg_right_3_joint
+			[3] 2000  ; leg_right_4_joint
+			[4] 2000  ; leg_right_5_joint
+			[5] 2000  ; leg_right_6_joint
+			[6] 2000  ; leg_left_1_joint
+			[7] 2000  ; leg_left_2_joint
+			[8] 2000  ; leg_left_3_joint
+			[9] 2000  ; leg_left_4_joint
+			[10] 2000  ; leg_left_5_joint
+			[11] 2000  ; leg_left_6_joint
+			[12] 2000  ; torso_1_joint
+			[13] 2000  ; torso_2_joint
+			[14] 500   ; head_1_joint
+			[15] 500   ; head_2_joint
+			[16] 500   ; arm_right_1_joint
+			[17] 500   ; arm_right_2_joint
+			[18] 500   ; arm_right_3_joint
+			[19] 500   ; arm_right_4_joint
+			[20] 500   ; arm_right_5_joint
+			[21] 500   ; arm_right_6_joint
+			[22] 500   ; arm_right_7_joint
+			[23] 500   ; arm_left_1_joint
+			[24] 500   ; arm_left_2_joint
+			[25] 500   ; arm_left_3_joint
+			[26] 500   ; arm_left_4_joint
+			[27] 500   ; arm_left_5_joint
+			[28] 500   ; arm_left_6_joint
+			[29] 500   ; arm_left_7_joint
+
+		}
+
+		dGains
+		{
+			[0] 5  ; leg_right_1_joint
+			[1] 5  ; leg_right_2_joint
+			[2] 5  ; leg_right_3_joint
+			[3] 5  ; leg_right_4_joint
+			[4] 5  ; leg_right_5_joint
+			[5] 5  ; leg_right_6_joint
+			[6] 5  ; leg_left_1_joint
+			[7] 5  ; leg_left_2_joint
+			[8] 5  ; leg_left_3_joint
+			[9] 5  ; leg_left_4_joint
+			[10] 5  ; leg_left_5_joint
+			[11] 5  ; leg_left_6_joint
+			[12] 5  ; torso_1_joint
+			[13] 5  ; torso_2_joint
+			[14] 1   ; head_1_joint
+			[15] 1   ; head_2_joint
+			[16] 1   ; arm_right_1_joint
+			[17] 1   ; arm_right_2_joint
+			[18] 1   ; arm_right_3_joint
+			[19] 1   ; arm_right_4_joint
+			[20] 1   ; arm_right_5_joint
+			[21] 1   ; arm_right_6_joint
+			[22] 1   ; arm_right_7_joint
+			[23] 1   ; arm_left_1_joint
+			[24] 1   ; arm_left_2_joint
+			[25] 1   ; arm_left_3_joint
+			[26] 1   ; arm_left_4_joint
+			[27] 1   ; arm_left_5_joint
+			[28] 1   ; arm_left_6_joint
+			[29] 1   ; arm_left_7_joint
+		}
+	}
+}
